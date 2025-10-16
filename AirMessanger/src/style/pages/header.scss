@@ -1,0 +1,13 @@
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-inline: 16px;
+  &__text {
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 167%;
+    color: var(--neutral-off-white);
+  }
+}

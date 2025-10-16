@@ -1,0 +1,28 @@
+{
+  "name": "airmessangerbackend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "yarn": "^1.22.22"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.17.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.17.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "twilio": "^5.10.2",
+    "uuid": "^13.0.0"
+  }
+}
