@@ -290,4 +290,25 @@
 }
 .registrationpagesaccount__buttonSubmit {
   padding-bottom: 50px;
+}
+
+.registration-email {
+  padding: 10px;
+}
+.registration-email__block {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+.registration-email__form {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+  padding-top: 300px;
+}
+.registration-email__submit-form {
+  padding-bottom: 20px;
 }/*# sourceMappingURL=registrationPages.css.map */

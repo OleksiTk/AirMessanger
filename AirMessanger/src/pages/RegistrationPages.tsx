@@ -1,7 +1,9 @@
 import { ButtonBlue } from "../components/ui/ButtonBlue";
 import React from "react";
 import "../style/pages/registrationPages.css";
+import { useNavigate } from "react-router-dom";
 export const RegistrationPages = () => {
+  const navigate = useNavigate();
   return (
     <div className="registration">
       <div className="registration-container">
@@ -19,7 +21,7 @@ export const RegistrationPages = () => {
           <p className="registration-button__policy">Terms & Privacy Policy</p>
           <ButtonBlue
             textButton="Start Messaging"
-            linkButton="registrationStep1"
+            onClick={() => navigate("/registrationStep1")}
           />
         </div>
       </div>

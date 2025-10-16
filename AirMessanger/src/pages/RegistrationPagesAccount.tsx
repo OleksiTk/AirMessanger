@@ -1,6 +1,6 @@
 import { TextField } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import { ButtonBlue } from "../components/ui/ButtonBlue";
 import axios from "axios";
@@ -10,6 +10,7 @@ function RegistrationPagesAccount() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [lastName, setLastName] = useState("");
+  const navigate = useNavigate();
   useEffect(() => {
     console.log(avatar);
   }, [avatar]);
@@ -269,7 +270,7 @@ function RegistrationPagesAccount() {
         </div>
         <div className="registrationpagesaccount__buttonSubmit">
           <div onClick={handleSubmit}>
-            <ButtonBlue textButton="Save" linkButton="chats" />
+            <ButtonBlue textButton="Save" onClick={() => navigate("/chats")} />
           </div>
         </div>
       </div>

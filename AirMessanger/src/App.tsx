@@ -10,6 +10,7 @@ import ChatsPage from "./pages/ChatsPage";
 import ContactsPages from "./pages/ContactsPages";
 import MorePage from "./pages/MorePage";
 import ChatPage from "./pages/ChatPage";
+import RegistrationPagesStepOneEmail from "./pages/RegistrationPagesStepOneEmail";
 
 function App() {
   return (
@@ -35,7 +36,7 @@ function App() {
           />
           <Route
             path="/registrationStep2Email"
-            element={<RegistrationPagesStepOne />}
+            element={<RegistrationPagesStepOneEmail />}
           />
           <Route path="/chats" element={<ChatsPage />} />
           <Route path="/contacts" element={<ContactsPages />} />

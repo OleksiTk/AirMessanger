@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import { MenuItem } from "@mui/material";
 import { ButtonBlue } from "../components/ui/ButtonBlue";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 function RegistrationPagesStepOneTelephone() {
   const currencies = [
     {
@@ -17,6 +17,8 @@ function RegistrationPagesStepOneTelephone() {
       ), // Вставляємо картинку
     },
   ];
+  const navigate = useNavigate(); // Тепер навігація тут
+
   return (
     <div className="registrationPagesstepone">
       <Link
@@ -132,7 +134,7 @@ function RegistrationPagesStepOneTelephone() {
         </div>
         <div className="registrationPagesstepone__button">
           <ButtonBlue
-            linkButton="registrationStep3Telephone"
+            onClick={() => navigate("/registrationStep3Telephone")}
             textButton="Continue"
           />
         </div>

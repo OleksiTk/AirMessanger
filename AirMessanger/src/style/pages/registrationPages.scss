@@ -292,3 +292,25 @@
     padding-bottom: 50px;
   }
 }
+.registration-email {
+  padding: 10px;
+
+  &__block {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+  &__form {
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+    padding-top: 300px;
+  }
+
+  &__submit-form {
+    padding-bottom: 20px;
+  }
+}

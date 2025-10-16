@@ -10,13 +10,19 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
-  uniq_id  String @unique
-  email     String?
+  email     String  @unique
+  phone_number   String?
   name      String?
   name_profile   String?
-  last_name   String?
-  phone_number   String?
+  password  String?
   avatar String?
+  last_name   String?
+   // OAuth поля
+  googleId  String? @unique
+  // Відносини
+  posts     Post[]
+  refreshTokens RefreshToken[]
+
   createdAt DateTime @default(now())
 }
 model Chat {
@@ -26,4 +32,22 @@ model Chat {
   username  String?
   socketId  String?
   createdAt DateTime @default(now())
+}
+model RefreshToken {
+  id        Int     @id @default(autoincrement())
+  token     String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        Int     @id @default(autoincrement())
+  title     String
+  content   String
+  author    User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

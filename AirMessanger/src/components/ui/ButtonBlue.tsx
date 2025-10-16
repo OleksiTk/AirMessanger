@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 export const ButtonBlue = ({
   textButton,
-  linkButton,
+  onClick,
 }: {
   textButton: string;
-  linkButton: string;
+  onClick: () => void;
 }) => {
   const navigate = useNavigate();
   return (
-    <button onClick={() => navigate(`/${linkButton}`)} className="button-blue">
+    <button onClick={onClick} className="button-blue">
       <p className="button-blue__text">{textButton}</p>
     </button>
   );
