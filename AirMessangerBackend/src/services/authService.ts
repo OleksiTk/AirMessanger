@@ -4,7 +4,12 @@ import { prisma } from "../config/prisma.js";
 import { tokenService } from "./tokenService.js";
 
 export const authService = {
-  async register(email: string, password: string, name: string) {
+  async register(
+    email: string,
+    password: string,
+    name_profile: string,
+    googleId: string
+  ) {
     // Перевіря існування користувача
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -22,7 +27,8 @@ export const authService = {
       data: {
         email,
         password: hashedPassword,
-        name,
+        name_profile,
+        googleId,
       },
     });
 
@@ -36,7 +42,7 @@ export const authService = {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name_profile: user.name_profile,
       },
       accessToken,
       refreshToken,
@@ -108,5 +114,45 @@ export const authService = {
 
   async logout(refreshToken: string) {
     await tokenService.removeRefreshToken(refreshToken);
+  },
+  async changeProfileInfo(
+    userId: string,
+    avatar: string,
+    name: string,
+    last_name: string
+  ) {
+    const user = await prisma.user.update({
+      where: { googleId: userId },
+      data: {
+        avatar,
+        name,
+        last_name,
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name_profile: user.name_profile,
+      avatar: user.avatar,
+    };
+  },
+  async getContacts(name_profile: string) {
+    const users = await prisma.user.findMany({
+      where: {
+        name_profile: {
+          contains: name_profile,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        // ← Виберемо тільки необхідні поля
+        id: true,
+        name_profile: true,
+        avatar: true,
+        email: true,
+      },
+    });
+    return users;
   },
 };

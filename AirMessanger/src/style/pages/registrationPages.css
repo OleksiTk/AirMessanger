@@ -311,4 +311,9 @@
 }
 .registration-email__submit-form {
   padding-bottom: 20px;
+}
+
+.active-blur {
+  background-color: transparent;
+  filter: blur(5px);
 }/*# sourceMappingURL=registrationPages.css.map */

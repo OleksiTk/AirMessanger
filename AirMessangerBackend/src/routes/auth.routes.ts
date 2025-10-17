@@ -8,5 +8,6 @@ router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/logout", authController.logout);
-
+router.post("/change-profile", authController.changeProfileInfo);
+router.get("/get-contacts", authController.getContacts);
 export default router;

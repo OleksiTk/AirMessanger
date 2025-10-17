@@ -151,4 +151,16 @@ table {
 body {
   line-height: 1;
   background-color: var(--neutral-active);
+  transition: filter 0.5s ease;
+}
+.loader {
+  z-index: 100;
+  position: absolute;
+  top: 40%;
+  left: 48%;
+}
+@media (max-width: 760px) {
+  .loader {
+    left: 40%;
+  }
 }

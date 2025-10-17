@@ -4,25 +4,42 @@ import { ButtonBlue } from "../components/ui/ButtonBlue";
 import "../style/pages/registrationPages.css";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../api/authApi";
+import CircularIndeterminate from "../components/ui/CircularIndeterminate";
 function RegistrationPagesStepOneEmail() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loader, setLoader] = useState(false);
+  const [name, setName] = useState("");
   const navigate = useNavigate(); // Тепер навігація тут
 
   async function registration() {
     try {
-      const registerAccount = await authApi.register(email, password, "alex");
+      setLoader(true);
+      const registerAccount = await authApi.register(email, password, name);
       if (registerAccount) {
         console.log(registerAccount);
-        //   navigate("/registrationStepAccount");
+        setLoader(false);
+        localStorage.setItem("googleId", registerAccount.googleId);
+        navigate("/registrationStepAccount");
       }
     } catch (error) {
       console.log(error);
+      setLoader(false);
+    } finally {
+      setLoader(false);
     }
   }
   return (
     <div className="registration-email">
-      <div className="container">
+      {loader == true ? (
+        <div className="loader">
+          <CircularIndeterminate />
+        </div>
+      ) : (
+        ""
+      )}
+
+      <div className={`container ${loader == true ? "active-blur" : ""}`}>
         <div className="registrationpagesaccount__backBlock">
           <div className="registrationpagesaccount__backBlock-button">
             <Link
@@ -90,6 +107,53 @@ function RegistrationPagesStepOneEmail() {
                 onChange={(e) => setEmail(e.target.value)}
                 id="outlined-basic"
                 label="Email (Required)"
+                variant="outlined"
+              />
+            </Box>
+            <Box
+              component="form"
+              sx={{
+                backgroundColor: "var(--neutral-dark)", // фон
+                width: "327px", // ширина
+                borderRadius: "4px",
+                "& .MuiSelect-select": {
+                  display: "flex",
+                  alignItems: "center", // вирівнює контент по вертикалі
+                  height: "100%", // забирає зайвий простір
+                  padding: "10px", // додає відступи всередині
+                  color: "var(--neutral-off-white)", // колір тексту всередині
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  border: "none", // прибираємо рамку
+                },
+                "& .MuiSelect-icon": {
+                  top: "50%", // вирівнюємо іконку по центру
+                  transform: "translateY(-50%)", // забезпечує вертикальне центрування
+                },
+              }}
+              noValidate
+              autoComplete="off"
+            >
+              <TextField
+                sx={{
+                  backgroundColor: "var(--neutral-dark)", // фон
+                  borderRadius: "4px",
+                  width: "327px", // ширина
+                  color: "var(--neutral-off-white)", // колір тексту
+                  "& .MuiInputBase-input": {
+                    color: "var(--neutral-off-white)", // колір тексту в полі введення
+                  },
+                  "& .MuiFormLabel-root": {
+                    color: "var(--neutral-off-white)", // колір тексту мітки
+                  },
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "var(--neutral-off-white)", // колір рамки
+                  },
+                }}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                id="outlined-basic"
+                label="Name account  (Required)"
                 variant="outlined"
               />
             </Box>

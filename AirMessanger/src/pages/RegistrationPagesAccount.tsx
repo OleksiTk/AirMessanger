@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import { ButtonBlue } from "../components/ui/ButtonBlue";
 import axios from "axios";
+import { authApi } from "../api/authApi";
+import { userInfo } from "../api/userInfo";
 function RegistrationPagesAccount() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null); // ← ВАЖЛИВО!
@@ -17,38 +19,32 @@ function RegistrationPagesAccount() {
 
   const handleSubmit = async () => {
     try {
-      // Створення FormData для відправки файлу
-      const data = new FormData();
-      data.append("name", name);
-      data.append("last_name", lastName);
-      data.append("email", "");
-      data.append("phone_number", "");
-      console.log(avatar);
-      localStorage.setItem("user", name);
-      if (avatarFile) {
-        data.append("avatar", avatarFile); // ← Відправляємо сам файл!
-        console.log("Файл додано:", avatarFile.name, avatarFile.size);
-      } else {
-        console.log("Файл не вибрано");
+      if (!name || !lastName) {
+        alert("Будь ласка, заповніть усі поля");
+        return;
       }
-      console.log(data);
 
-      const response = await fetch("http://localhost:3000/create/user", {
-        method: "POST",
-        body: data,
-        // НЕ додавай Content-Type заголовок - браузер сам додасть з boundary
-      });
+      let compressedFileString: string | null = null;
 
-      const result = await response.json();
+      // Конвертуємо File у string (base64)
+      if (avatarFile) {
+        const compressedFile = await compressImage(avatarFile);
+        compressedFileString = await fileToBase64(compressedFile);
+      }
 
-      if (response.ok) {
-        console.log("User:", result.user);
+      console.log("Compressed file (base64):", compressedFileString);
 
-        // Очистка форми
+      const registerAccount = await userInfo.ChangeInfoProfile(
+        compressedFileString, // ← Тепер це string, а не File
+        name,
+        lastName
+      );
 
+      if (registerAccount) {
+        console.log("User:", registerAccount);
         setAvatar(null);
-      } else {
-        console.log("помилка");
+        setAvatarFile(null);
+        navigate("/chats");
       }
     } catch (error) {
       console.error(error);
@@ -87,6 +83,72 @@ function RegistrationPagesAccount() {
       reader.readAsDataURL(file);
     }
   };
+  async function compressImage(file: File): Promise<File> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // Зменшуємо розміри, якщо занадто великі
+          const maxWidth = 800;
+          const maxHeight = 800;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Стискаємо з якістю 0.7
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              }
+            },
+            "image/jpeg",
+            0.7
+          );
+        };
+      };
+    });
+  }
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        resolve(reader.result as string); // "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+      };
+      reader.onerror = (error) => {
+        reject(error);
+      };
+    });
+  }
   return (
     <div className="registrationpagesaccount">
       <div className="registrationpagesaccount-container">
@@ -269,8 +331,8 @@ function RegistrationPagesAccount() {
           </div>
         </div>
         <div className="registrationpagesaccount__buttonSubmit">
-          <div onClick={handleSubmit}>
-            <ButtonBlue textButton="Save" onClick={() => navigate("/chats")} />
+          <div>
+            <ButtonBlue textButton="Save" onClick={handleSubmit} />
           </div>
         </div>
       </div>

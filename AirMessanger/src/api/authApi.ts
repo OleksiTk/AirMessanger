@@ -2,11 +2,11 @@
 const API_BASE_URL = "http://localhost:3000/api";
 
 export const authApi = {
-  register: async (email: string, password: string, name: string) => {
+  register: async (email: string, password: string, name_profile: string) => {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name_profile }),
       credentials: "include",
     });
     return res.json();
