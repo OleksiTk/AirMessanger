@@ -45,6 +45,9 @@ export const tokenService = {
   async verifyRefreshToken(token: string) {
     try {
       const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);
+      if (typeof decoded === "string") {
+        throw new Error("Invalid token payload");
+      }
       return decoded;
     } catch (error) {
       return null;

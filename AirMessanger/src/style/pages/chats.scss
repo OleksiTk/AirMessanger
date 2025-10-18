@@ -16,6 +16,11 @@
   padding-top: 30px;
   padding-inline: 16px;
   padding-bottom: 200px;
+  &__chats {
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+  }
   &__story {
     display: flex;
     flex-direction: row;
@@ -81,6 +86,12 @@
     align-items: center;
     justify-content: space-between;
     position: relative;
+    gap: 20px;
+    &__icon-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 20px;
+    }
     &__icon-active {
       position: absolute;
       top: -5%;

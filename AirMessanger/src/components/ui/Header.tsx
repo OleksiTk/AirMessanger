@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../../style/pages/header.css";
 import { userInfo } from "../../api/userInfo";
+import { contactsApi } from "../../api/contacts";
 function Header({ Pages }: { Pages: string }) {
   useEffect(() => {
     setActivePage(Pages);
@@ -28,6 +29,9 @@ function Header({ Pages }: { Pages: string }) {
       setModalWindow(true);
     }
   }
+  function HandlerAddConctas(name_profile: string) {
+    addContacts(name_profile);
+  }
   async function FindUser() {
     try {
       if (!name.trim()) {
@@ -45,6 +49,16 @@ function Header({ Pages }: { Pages: string }) {
       }
     } catch (error) {
       console.error("Error finding user:", error);
+    }
+  }
+  async function addContacts(name_profile: string) {
+    try {
+      const addContacts = await contactsApi.addContacts(name_profile);
+      if (addContacts) {
+        console.log("succes", addContacts);
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
   useEffect(() => {
@@ -76,12 +90,28 @@ function Header({ Pages }: { Pages: string }) {
                   {findName.length > 0 ? (
                     findName.map((user) => (
                       <div key={user.id} className="contact-item">
-                        <img src={user.avatar} alt={user.name_profile} />
-                        <span>{user.name_profile}</span>
+                        <div className="contact-item__block">
+                          <img
+                            src={user.avatar}
+                            alt={user.name_profile}
+                            className="contact-item__block-img"
+                          />
+                          <span className="contact-item__block-name">
+                            {user.name_profile}
+                          </span>
+                          <div
+                            onClick={() => {
+                              HandlerAddConctas(user.name_profile);
+                            }}
+                            className="contact-item__block-add"
+                          >
+                            +
+                          </div>
+                        </div>
                       </div>
                     ))
                   ) : (
-                    <div>Контакти не знайдені</div>
+                    <div className="contact-item">Контакти не знайдені</div>
                   )}
                 </div>
               </div>

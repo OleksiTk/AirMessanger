@@ -16,21 +16,56 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
+    let accessToken = req.cookies.accessToken;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided" });
+    if (!accessToken) {
+      const refreshToken = req.cookies.refreshToken;
+      console.log("ми тут ");
+
+      if (!refreshToken) {
+        return res.status(401).json({ message: "Refresh token expired" });
+      }
+
+      try {
+        // Верифікуємо refreshToken
+        const decoded = await tokenService.verifyRefreshToken(refreshToken);
+
+        if (!decoded || !("userId" in decoded)) {
+          return res.status(401).json({ message: "Invalid refresh token" });
+        }
+
+        // ✅ Генеруємо новий accessToken
+        const newAccessToken = tokenService.generateAccessToken(decoded.userId);
+
+        // Встановлюємо новий accessToken в cookies
+        res.cookie("accessToken", newAccessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 15 * 60 * 1000, // 15 хвилин
+        });
+
+        req.userId = decoded.userId;
+        return next();
+      } catch (refreshError) {
+        return res
+          .status(401)
+          .json({ message: "Session expired, please login again" });
+      }
     }
+    try {
+      // Спробуємо верифікувати accessToken
+      const decoded = await tokenService.verifyAccessToken(accessToken);
 
-    const token = authHeader.substring(7);
-    const decoded = await tokenService.verifyAccessToken(token);
+      if (!decoded || typeof decoded !== "object" || !("userId" in decoded)) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
 
-    if (!decoded || typeof decoded !== "object" || !("userId" in decoded)) {
-      return res.status(401).json({ message: "Invalid token" });
+      req.userId = decoded.userId;
+      return next();
+    } catch (error) {
+      return res.status(401).json({ message: "Authentication failed" });
     }
-
-    req.userId = decoded.userId;
-    next();
   } catch (error) {
     res.status(401).json({ message: "Authentication failed" });
   }

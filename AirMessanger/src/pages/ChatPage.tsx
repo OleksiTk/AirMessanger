@@ -1,17 +1,41 @@
 import React, { useEffect, useState, useRef } from "react";
-import "../style/pages/chat.css";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import io, { Socket } from "socket.io-client";
+import "../style/pages/chat.css";
+import { chatApi } from "../api/chatApi";
 
 interface Message {
   id: number;
-  text: string;
-  from: string | null;
-  time: string;
-  isRead?: boolean;
+  content: string;
+  author: {
+    id: number;
+    name_profile: string;
+    avatar: string;
+  };
+  authorGoogleId: string;
+  createdAt: string;
+  isRead: boolean;
 }
 
-let socket: Socket;
+interface Chat {
+  id: number;
+  participant1: {
+    id: number;
+    name_profile: string;
+    avatar: string;
+    name: string;
+    googleId: string;
+  };
+  participant2: {
+    id: number;
+    name_profile: string;
+    avatar: string;
+    name: string;
+    googleId: string;
+  };
+}
+
+let socket: Socket | null = null;
 
 const getSocket = () => {
   if (!socket) {
@@ -21,138 +45,257 @@ const getSocket = () => {
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
     });
-    console.log("🔌 Socket created");
   }
   return socket;
 };
 
 function ChatPage() {
-  const currentSocket = getSocket();
+  const { profileName } = useParams<{ profileName: string }>();
   const navigate = useNavigate();
-  const [addNewMessage, setAddNewMessage] = useState<string>("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [userName, setUserName] = useState<string | null>("");
-  const [isConnected, setIsConnected] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const currentSocket = getSocket();
 
-  // Автоскрол до нових повідомлень
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const currentUserProfile = localStorage.getItem("user");
+  const currentUserGoogleId = localStorage.getItem("googleId");
+
+  // Автоскрол
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchMessage = async () => {
-    try {
-      const response = await fetch("http://localhost:3000/create/chat/1", {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        console.error("❌ Failed to fetch messages");
-        return;
-      }
-
-      const result = await response.json();
-
-      const messagingFetch = result.map((element: any) => ({
-        id: element.id_chat,
-        from: element.username,
-        text: element.content,
-        time: new Date(element.createdAt).toLocaleTimeString("uk-UA", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isRead: true,
-      }));
-
-      setMessages(messagingFetch);
-      console.log("📥 Messages loaded:", messagingFetch.length);
-    } catch (error) {
-      console.error("❌ Error fetching messages:", error);
-    }
-  };
-
+  // Завантажити чат з API
   useEffect(() => {
-    // Завантажуємо username
-    const userAccount = localStorage.getItem("user");
-    setUserName(userAccount);
-    console.log("👤 Username:", userAccount);
+    if (!profileName) {
+      setError("Profile name not provided");
+      setLoading(false);
+      return;
+    }
 
-    // Завантажуємо повідомлення
-    fetchMessage();
+    const fetchChat = async () => {
+      try {
+        setLoading(true);
+        const chatData = await chatApi.getChatWithUser(profileName);
+        setChat(chatData);
+        setMessages(chatData.messages || []);
+        console.log("Chat loaded:", chatData);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load chat";
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // ✅ Socket.IO listeners
-    socket.on("connect", () => {
+    fetchChat();
+  }, [profileName]);
+
+  // Socket.IO підключення
+  useEffect(() => {
+    // Підключаємось до сокета
+    const handleConnect = () => {
       setIsConnected(true);
-      console.log("✅ Connected to server:", socket.id);
-    });
+      console.log("Socket connected:", currentSocket.id);
 
-    socket.on("disconnect", (reason) => {
+      // Приєднуємось до чату
+      currentSocket.emit("join_chat", {
+        chatId: chat.id,
+        googleId: currentUserGoogleId,
+        name_profile: currentUserProfile,
+      });
+    };
+
+    const handleDisconnect = () => {
       setIsConnected(false);
-      console.log("❌ Disconnected from server:", reason);
-    });
+      console.log("Socket disconnected");
+    };
 
-    socket.on("connect_error", (error) => {
-      console.error("❌ Connection error:", error);
-      setIsConnected(false);
-    });
-
-    // ✅ Отримуємо нові повідомлення
-    socket.on("receive_message", (message: Message) => {
-      console.log("📨 New message received:", message);
+    // Отримуємо нові повідомлення
+    const handleReceiveMessage = (message: Message) => {
+      console.log("New message received:", message);
       setMessages((prev) => {
-        // Перевіряємо чи повідомлення вже є
+        // ✅ Перевіряємо чи повідомлення вже є
         if (prev.some((msg) => msg.id === message.id)) {
           return prev;
         }
         return [...prev, message];
       });
-    });
-
-    // ✅ Cleanup
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("connect_error");
-      socket.off("receive_message");
     };
-  }, []);
 
-  const CreateNewMessage = async () => {
-    if (addNewMessage.trim() === "" || !userName) {
-      console.warn("⚠️ Message or username is empty");
+    // Сповіщення про друкування
+    const handleUserTyping = (data: {
+      name_profile: string;
+      isTyping: boolean;
+    }) => {
+      if (data.name_profile !== currentUserProfile) {
+        setIsTyping(data.isTyping);
+
+        // ✅ Автоматично ховаємо "typing..." через 3 секунди
+        if (data.isTyping && typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        if (data.isTyping) {
+          typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+          }, 3000);
+        }
+      }
+    };
+
+    // Користувач приєднався
+    const handleUserJoined = (data: { name_profile: string }) => {
+      console.log(`${data.name_profile} joined`);
+    };
+
+    // Користувач залишив
+    const handleUserLeft = (data: { name_profile: string }) => {
+      console.log(`${data.name_profile} left`);
+    };
+
+    // Повідомлення прочитане
+    const handleMessageRead = (data: { messageId: number }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === data.messageId ? { ...msg, isRead: true } : msg
+        )
+      );
+    };
+
+    // ✅ Реєструємо всі обробники
+    currentSocket.on("connect", handleConnect);
+    currentSocket.on("disconnect", handleDisconnect);
+    currentSocket.on("receive_message", handleReceiveMessage);
+    currentSocket.on("user_typing", handleUserTyping);
+    currentSocket.on("user_joined", handleUserJoined);
+    currentSocket.on("user_left", handleUserLeft);
+    currentSocket.on("message_read", handleMessageRead);
+
+    // ✅ Якщо вже підключені
+    if (currentSocket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      // ✅ Видаляємо ВСІ обробники при unmount
+      currentSocket.off("connect", handleConnect);
+      currentSocket.off("disconnect", handleDisconnect);
+      currentSocket.off("receive_message", handleReceiveMessage);
+      currentSocket.off("user_typing", handleUserTyping);
+      currentSocket.off("user_joined", handleUserJoined);
+      currentSocket.off("user_left", handleUserLeft);
+      currentSocket.off("message_read", handleMessageRead);
+
+      if (chat) {
+        currentSocket.emit("leave_chat", {
+          chatId: chat.id,
+          name_profile: currentUserProfile,
+        });
+      }
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [chat, currentUserGoogleId, currentUserProfile]);
+
+  // Надіслати повідомлення
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !chat || !currentUserGoogleId) {
       return;
     }
 
-    const data = {
-      content: addNewMessage,
-      username: userName,
-    };
+    console.log("Sending message:", newMessage);
 
-    try {
-      console.log("📤 Sending message:", data);
+    currentSocket.emit("send_message", {
+      chatId: chat.id,
+      content: newMessage,
+      googleId: currentUserGoogleId,
+    });
 
-      // ✅ Відправляємо через Socket.IO
-      currentSocket.emit("send_message", data);
+    setNewMessage("");
 
-      // Очищуємо інпут одразу
-      setAddNewMessage("");
-
-      // ❌ НЕ додаємо повідомлення в стейт тут!
-      // Воно прийде через socket.on("receive_message")
-    } catch (error) {
-      console.error("❌ Error sending message:", error);
-    }
+    // ✅ Зупиняємо індикатор "typing"
+    currentSocket.emit("typing", {
+      chatId: chat.id,
+      name_profile: currentUserProfile,
+      isTyping: false,
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      CreateNewMessage();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+      return;
+    }
+
+    // ✅ Повідомляємо, що користувач друкує (тільки якщо є текст)
+    if (newMessage.trim() && chat) {
+      currentSocket.emit("typing", {
+        chatId: chat.id,
+        name_profile: currentUserProfile,
+        isTyping: true,
+      });
+
+      // ✅ Зупиняємо через 2 секунди
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        currentSocket.emit("typing", {
+          chatId: chat.id,
+          name_profile: currentUserProfile,
+          isTyping: false,
+        });
+      }, 2000);
     }
   };
+
+  const opponent =
+    chat?.participant1.name_profile === currentUserProfile
+      ? chat?.participant2
+      : chat?.participant1;
+
+  if (loading) {
+    return (
+      <div className="chat">
+        <div className="container">
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            Loading chat...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="chat">
+        <div className="container">
+          <div style={{ textAlign: "center", padding: "20px", color: "red" }}>
+            Error: {error}
+            <button onClick={() => navigate(-1)} style={{ marginTop: "10px" }}>
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="chat">
       <div className="container">
+        {/* Header */}
         <header className="header-chat">
           <div className="header-chat__arrow" onClick={() => navigate(-1)}>
             <svg
@@ -169,8 +312,7 @@ function ChatPage() {
             </svg>
           </div>
           <div className="header-chat__name">
-            Athalia Putri
-            {/* Індикатор підключення */}
+            {opponent?.name || opponent?.name_profile}
             <span
               style={{
                 marginLeft: "10px",
@@ -196,48 +338,70 @@ function ChatPage() {
                 />
               </svg>
             </div>
-            <div className="header__settings-menu">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M21 18H3V16H21V18ZM21 13H3V11H21V13ZM21 8H3V6H21V8Z"
-                  fill="#F7F7FC"
-                />
-              </svg>
-            </div>
           </div>
         </header>
+
+        {/* Messages */}
         <main className="main-chats">
           <div className="main-chats__chat">
-            {messages.map((message) =>
-              message.from === userName ? (
-                <div className="main-chats__chat-you" key={message.id}>
-                  <div className="chat-you">
-                    <div className="chat-you__message">{message.text}</div>
-                    <div className="chat-you__message-time">
-                      {message.time} · {message.isRead ? "Read" : "Sent"}
-                    </div>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={
+                  message.authorGoogleId === currentUserGoogleId
+                    ? "main-chats__chat-you"
+                    : "main-chats__chat-friends"
+                }
+              >
+                <div
+                  className={
+                    message.authorGoogleId === currentUserGoogleId
+                      ? "chat-you"
+                      : "chat-friends"
+                  }
+                >
+                  <div
+                    className={
+                      message.authorGoogleId === currentUserGoogleId
+                        ? "chat-you__message"
+                        : "chat-friends__message"
+                    }
+                  >
+                    {message.content}
+                  </div>
+                  <div
+                    className={
+                      message.authorGoogleId === currentUserGoogleId
+                        ? "chat-you__message-time"
+                        : "chat-friends__message-time"
+                    }
+                  >
+                    {new Date(message.createdAt).toLocaleTimeString("uk-UA", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    · {message.isRead ? "Read" : "Sent"}
                   </div>
                 </div>
-              ) : (
-                <div className="main-chats__chat-friends" key={message.id}>
-                  <div className="chat-friends">
-                    <div className="chat-friends__message">{message.text}</div>
-                    <div className="chat-friends__message-time">
-                      {message.time} · {message.isRead ? "Read" : "Sent"}
-                    </div>
+              </div>
+            ))}
+            {isTyping && (
+              <div className="main-chats__chat-friends">
+                <div className="chat-friends">
+                  <div
+                    className="chat-friends__message"
+                    style={{ fontStyle: "italic", opacity: 0.7 }}
+                  >
+                    typing...
                   </div>
                 </div>
-              )
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
         </main>
+
+        {/* Footer */}
         <footer className="footer">
           <div className="footer__container">
             <div className="footer__plus-add-file">
@@ -253,19 +417,24 @@ function ChatPage() {
             </div>
             <div className="footer__input">
               <input
+                id="messageInput"
+                name="message"
                 type="text"
                 className="footer__input-text"
-                value={addNewMessage}
-                onChange={(e) => setAddNewMessage(e.target.value)}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
-                disabled={!isConnected}
               />
             </div>
             <div
               className="footer__send"
-              onClick={CreateNewMessage}
-              style={{ opacity: isConnected ? 1 : 0.5 }}
+              onClick={handleSendMessage}
+              style={{
+                opacity: isConnected && newMessage.trim() ? 1 : 0.5,
+                cursor:
+                  isConnected && newMessage.trim() ? "pointer" : "not-allowed",
+              }}
             >
               <svg
                 width="18"

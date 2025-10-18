@@ -1,13 +1,10 @@
-// // src/routes/users.routes.ts
-// import express from "express";
-// import { userController } from "../controllers/userController";
-// import { authMiddleware } from "../middlewares/authMiddleware";
+// src/routes/users.routes.ts
+import express from "express";
+import { authMiddleware } from "../middlewares/authMiddleware";
+import { contactsController } from "../controllers/contactsController";
+const router = express.Router();
 
-// const router = express.Router();
+router.post("/contacts-add", authMiddleware, contactsController.addContacts);
+router.get("/contacts-get", authMiddleware, contactsController.getAllContacts);
 
-// router.get("/me", authMiddleware, userController.getCurrentUser);
-// router.get("/:id", userController.getUserById);
-// router.put("/:id", authMiddleware, userController.updateUser);
-// router.delete("/:id", authMiddleware, userController.deleteUser);
-
-// export default router;
+export default router;

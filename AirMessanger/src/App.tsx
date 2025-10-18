@@ -41,7 +41,7 @@ function App() {
           <Route path="/chats" element={<ChatsPage />} />
           <Route path="/contacts" element={<ContactsPages />} />
           <Route path="/more" element={<MorePage />} />
-          <Route path="/chats/JHON-Doe" element={<ChatPage />} />
+          <Route path="/chat/:profileName" element={<ChatPage />} />
         </Routes>
       </BrowserRouter>
     </>

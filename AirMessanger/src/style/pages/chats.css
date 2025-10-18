@@ -17,6 +17,11 @@
   padding-inline: 16px;
   padding-bottom: 200px;
 }
+.main__chats {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+}
 .main__story {
   display: flex;
   flex-direction: row;
@@ -81,6 +86,12 @@
   align-items: center;
   justify-content: space-between;
   position: relative;
+  gap: 20px;
+}
+.main-groups__icon-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 20px;
 }
 .main-groups__icon-active {
   position: absolute;

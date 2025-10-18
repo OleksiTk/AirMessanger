@@ -8,6 +8,9 @@ import { fileURLToPath } from "url";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/users.routes.js";
+import { chatSocketHandler } from "./sockets/chatSocket.js";
+import chatRoutes from "./routes/chat.routes.js";
 // import userRoutes from './routes/users.routes';
 // import postRoutes from './routes/posts.routes';
 const __filename = fileURLToPath(import.meta.url);
@@ -32,21 +35,36 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // Routes
 app.use("/api/auth", authRoutes);
-// app.use('/api/users', userRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/chat", chatRoutes);
 // app.use('/api/posts', postRoutes);
 
-// Health check
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ message: "Server is running" });
+const httpServer = createServer(app);
+
+// ✅ Підключаємо Socket.IO
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ["websocket", "polling"],
 });
+
+// ✅ Socket.IO обробник
+chatSocketHandler(io);
 
 const PORT = process.env.PORT || 3000;
-app.get("/", (req, res) => {
-  res.json({ message: "Server is running" });
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Socket.IO ready`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
+  process.exit(0);
 });
 
 // ✅ Створюємо HTTP сервер з Express app
